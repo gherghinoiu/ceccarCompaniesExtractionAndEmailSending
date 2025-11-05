@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Sender and Data Extractor</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        h1, h2 { color: #333; }
+        .container { display: flex; flex-direction: column; gap: 2em; }
+        .section { border: 1px solid #ccc; padding: 1em; border-radius: 5px; width: 100%; box-sizing: border-box; }
+        form { display: flex; flex-direction: column; gap: 1em; }
+        label { font-weight: bold; }
+        input, textarea, select, button { padding: 0.5em; border: 1px solid #ccc; border-radius: 3px; }
+        button { background-color: #007bff; color: white; cursor: pointer; }
+    </style>
+    <script src="https://cdn.tiny.cloud/1/abjp02aysc6dmxk7b8j6dmqooipdhu66cop01dwbuwjlnssb/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
+    <script>
+      tinymce.init({
+        selector: 'textarea#body',
+        plugins: 'lists link image table code help wordcount',
+        toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | indent outdent | bullist numlist | code | help'
+      });
+    </script>
+</head>
+<body>
+    <h1>Email Sender and Data Extractor</h1>
+    <div class="container">
+        <div class="section">
+            <h2>Send Emails</h2>
+            <form action="/send-emails" method="post" enctype="multipart/form-data">
+                <h3>Email Setup</h3>
+                <label for="smtp_host">SMTP Host:</label>
+                <input type="text" id="smtp_host" name="smtp_host" value="smtp.etraduceri.eu" required>
+                <label for="smtp_port">SMTP Port:</label>
+                <input type="number" id="smtp_port" name="smtp_port" value="465" required>
+                <label for="smtp_user">SMTP Username:</label>
+                <input type="text" id="smtp_user" name="smtp_user" value="contact@etraduceri.eu" required>
+                <label for="smtp_pass">SMTP Password:</label>
+                <input type="password" id="smtp_pass" name="smtp_pass" required>
+                <label for="smtp_secure">Encryption:</label>
+                <select id="smtp_secure" name="smtp_secure">
+                    <option value="smtps" selected>SMTPS (SSL)</option>
+                </select>
+
+                <h3>Email Content</h3>
+                <label for="subject">Subject:</label>
+                <input type="text" id="subject" name="subject" required>
+                <label for="body">Body:</label>
+                <textarea id="body" name="body" rows="15"></textarea>
+
+                <h3>Upload Excel File</h3>
+                <label for="excel_file">Excel File (with 'email' column):</label>
+                <input type="file" id="excel_file" name="excel_file" accept=".xlsx, .xls" required>
+
+                <button type="submit">Send Emails</button>
+            </form>
+        </div>
+
+        <div class="section">
+            <h2>Download CECCAR Data</h2>
+            <form action="/download-excel" method="post">
+                <label for="member_region">Select Region:</label>
+                <select id="member_region" name="member_region">
+                    <option value="-1">All Regions</option>
+                    <option value="0">Alba</option>
+                    <option value="1">Arad</option>
+                    <option value="2">Arges</option>
+                    <option value="3">Bacau</option>
+                    <option value="4">Bihor</option>
+                    <option value="5">Bistrita Nasaud</option>
+                    <option value="6">Botosani</option>
+                    <option value="7">Brasov</option>
+                    <option value="8">Braila</option>
+                    <option value="9">Bucuresti</option>
+                    <option value="10">Buzau</option>
+                    <option value="11">Caras-Severin</option>
+                    <option value="12">Calarasi</option>
+                    <option value="13">Cluj</option>
+                    <option value="14">Constanta</option>
+                    <option value="15">Covasna</option>
+                    <option value="16">Dambovita</option>
+                    <option value="17">Dolj</option>
+                    <option value="18">Galati</option>
+                    <option value="19">Giurgiu</option>
+                    <option value="20">Gorj</option>
+                    <option value="21">Harghita</option>
+                    <option value="22">Hunedoara</option>
+                    <option value="23">Ialomita</option>
+                    <option value="24">Iasi</option>
+                    <option value="25">Ilfov</option>
+                    <option value="26">Maramures</option>
+                    <option value="27">Mehedinti</option>
+                    <option value="28">Mures</option>
+                    <option value="29">Neamt</option>
+                    <option value="30">Olt</option>
+                    <option value="31">Prahova</option>
+                    <option value="32">Satu Mare</option>
+                    <option value="33">Salaj</option>
+                    <option value="34">Sibiu</option>
+                    <option value="35">Suceava</option>
+                    <option value="36">Teleorman</option>
+                    <option value="37">Timis</option>
+                    <option value="38">Tulcea</option>
+                    <option value="39">Vaslui</option>
+                    <option value="40">Valcea</option>
+                    <option value="41">Vrancea</option>
+                </select>
+                <button type="submit">Download Excel</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
