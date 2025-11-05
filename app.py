@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash, jsonify
 import pandas as pd
 import smtplib
 from email.mime.text import MIMEText
@@ -6,16 +6,25 @@ from email.mime.multipart import MIMEMultipart
 import requests
 import io
 import re
+import threading
+import uuid
+import os
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
+# --- Global Task Management ---
+tasks = {}
+TEMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temp_files')
+if not os.path.exists(TEMP_DIR):
+    os.makedirs(TEMP_DIR)
+
+# --- Email Functionality (No Changes) ---
 @app.route('/')
 def index():
     return render_template('index.html')
 
 def is_valid_email(email):
-    """Simple regex for email validation."""
     if isinstance(email, str):
         return re.match(r"[^@]+@[^@]+\.[^@]+", email)
     return False
@@ -78,13 +87,10 @@ def send_emails():
         flash(f'An error occurred: {e}')
         return redirect(url_for('index'))
 
-
-@app.route('/download-excel', methods=['POST'])
-def download_excel():
+# --- Asynchronous Data Extraction ---
+def run_extraction_task(member_region, task_id):
     try:
-        member_region_str = request.form['member_region']
-        member_region = int(member_region_str) if member_region_str != "-1" else None
-
+        tasks[task_id] = {'status': 'running', 'progress': 'Initializing...'}
         api_url = 'https://raportare.ceccar.ro/api/search'
         headers = {
             'Accept': 'application/ld+json',
@@ -116,32 +122,50 @@ def download_excel():
             if page == 1:
                 total_pages = data.get('pager', {}).get('pagination', {}).get('total_pages', 1)
 
+            tasks[task_id]['progress'] = f'Processed page {page} of {total_pages}'
             page += 1
 
         if not all_items:
-            flash('No data found for the selected region.')
-            return redirect(url_for('index'))
+            tasks[task_id] = {'status': 'error', 'message': 'No data found for the selected region.'}
+            return
 
         df = pd.DataFrame(all_items)
         df = df[['email', 'name', 'cui', 'region', 'phone', 'type']]
 
-        output = io.BytesIO()
-        writer = pd.ExcelWriter(output, engine='openpyxl')
-        df.to_excel(writer, index=False, sheet_name='CECCAR Data')
-        writer.close()
-        output.seek(0)
+        # Save file to temp directory
+        filename = f'ceccar_data_{task_id}.xlsx'
+        filepath = os.path.join(TEMP_DIR, filename)
+        df.to_excel(filepath, index=False, sheet_name='CECCAR Data')
 
-        return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            as_attachment=True,
-            download_name=f'ceccar_data_region_{"all" if member_region is None else member_region}.xlsx'
-        )
+        tasks[task_id] = {'status': 'complete', 'filepath': filepath}
 
     except Exception as e:
-        flash(f'An error occurred while fetching data: {e}')
-        return redirect(url_for('index'))
+        tasks[task_id] = {'status': 'error', 'message': str(e)}
 
+@app.route('/start-extraction', methods=['POST'])
+def start_extraction():
+    member_region_str = request.form['member_region']
+    member_region = int(member_region_str) if member_region_str != "-1" else None
+
+    task_id = str(uuid.uuid4())
+    thread = threading.Thread(target=run_extraction_task, args=(member_region, task_id))
+    thread.start()
+
+    return jsonify({'task_id': task_id})
+
+@app.route('/extraction-status/<task_id>')
+def extraction_status(task_id):
+    task = tasks.get(task_id, {})
+    return jsonify(task)
+
+@app.route('/download-file/<task_id>')
+def download_file(task_id):
+    task = tasks.get(task_id)
+    if task and task.get('status') == 'complete':
+        return send_file(task['filepath'], as_attachment=True, download_name=os.path.basename(task['filepath']))
+    else:
+        flash('File not ready or an error occurred.')
+        return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
