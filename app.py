@@ -52,8 +52,7 @@ def run_email_task(task_id, smtp_details, email_content, filepath):
             msg['To'] = email
             msg['Subject'] = email_content['subject']
             msg.attach(MIMEText(email_content['body'], 'html'))
-            recipients = [email, smtp_details['user']]
-            server.sendmail(smtp_details['user'], recipients, msg.as_string())
+            server.sendmail(smtp_details['user'], email, msg.as_string())
             tasks[task_id]['progress'] = f'Sent {i+1} of {total_emails} emails'
 
         server.quit()
@@ -133,7 +132,7 @@ def run_extraction_task(member_region, region_name, task_id):
             "memberRegion": member_region,
             "memberCurrentYearVisa": None
         }
-        response = requests.post(api_url, headers=headers, json=payload, timeout=30)
+        response = requests.post(api_url, headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()
 
