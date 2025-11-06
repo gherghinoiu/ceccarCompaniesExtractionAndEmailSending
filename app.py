@@ -136,11 +136,12 @@ def run_extraction_task(member_region, region_name, task_id):
         response.raise_for_status()
         data = response.json()
 
-        if not data.get('items'):
+        items = data.get('pager', {}).get('items', [])
+        if not items:
             tasks[task_id] = {'status': 'error', 'message': 'No data found for the selected region.'}
             return
 
-        all_items.extend(data.get('items', []))
+        all_items.extend(items)
         total_pages = data.get('pager', {}).get('pagination', {}).get('total_pages', 1)
         tasks[task_id]['progress'] = f'Processed page 1 of {total_pages}'
         page = 2
@@ -150,7 +151,8 @@ def run_extraction_task(member_region, region_name, task_id):
             response = requests.post(api_url, headers=headers, json=payload)
             response.raise_for_status()
             data = response.json()
-            all_items.extend(data.get('items', []))
+            items = data.get('pager', {}).get('items', [])
+            all_items.extend(items)
             tasks[task_id]['progress'] = f'Processed page {page} of {total_pages}'
             page += 1
 
